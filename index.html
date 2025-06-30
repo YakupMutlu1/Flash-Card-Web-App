@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hipotez Flashcard</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    .card-container {
+      perspective: 1000px;
+      margin: 1rem 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 500px;
+      height: 200px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      cursor: pointer;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      font-size: 1.2rem;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+
+    .card-front {
+      background-color: #222;
+    }
+
+    .card-back {
+      background-color: #00ff44;
+      color: black;
+      transform: rotateY(180deg);
+    }
+
+    .controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    button, select {
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover, select:hover {
+      background-color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hipotez Testleri Flashcard</h1>
+
+  <div class="controls">
+    <select id="categorySelect" onchange="filterByCategory()">
+      <option value="all">Tüm Kategoriler</option>
+      <option value="tanım">Tanım</option>
+      <option value="kavram">kavram</option>
+      <option value="ilişki">ilişki</option>
+      <option value="modelleme">modelleme</option>
+      <option value="tasarım">tasarım</option>
+      <option value="sql">sql</option>
+      <option value="performans">performans</option>
+      <option value="güvenlik">güvenlik</option>
+      <option value="uygulama">uygulama</option>
+      <option value="kural">kural</option>
+      <option value="sembol">sembol</option>
+      <option value="mimari">mimari</option>
+      <option value="karşılaştırma">karşılaştırma</option>
+
+    </select>
+    <button onclick="prevCard()">⬅ Önceki</button>
+    <button onclick="nextCard()">Sonraki ➡</button>
+  </div>
+
+  <div class="card-container">
+    <div class="card" id="flashcard">
+      <div class="card-face card-front" id="question">Soru</div>
+      <div class="card-face card-back" id="answer">Cevap</div>
+    </div>
+  </div>
+
+  <script>
+    const flashcards = 
+    [
+  { "q": "Veritabanı nedir?", "a": "İlişkili verilerin organize edildiği yapıdır.", "cat": "tanım" },
+  { "q": "VTYS ne işe yarar?", "a": "Veritabanlarını oluşturmak, yönetmek ve erişmek için kullanılır.", "cat": "sistem" },
+  { "q": "ERD neyi ifade eder?", "a": "Varlıklar ve ilişkiler arasındaki bağlantıları gösteren diyagramdır.", "cat": "modelleme" },
+  { "q": "Birincil anahtar nedir?", "a": "Tablodaki her kaydı benzersiz tanımlar, boş olamaz.", "cat": "kavram" },
+  { "q": "Yabancı anahtar (foreign key) neyi belirtir?", "a": "Başka bir tablonun birincil anahtarına referans verir.", "cat": "kavram" },
+  { "q": "Zayıf varlık nedir?", "a": "Tek başına tanımlanamayan, başka bir varlığa bağımlı olan varlıktır.", "cat": "modelleme" },
+  { "q": "Birden fazla değer alan nitelikler nasıl modellenir?", "a": "Yeni bir tablo ile ilişkilendirilerek çözümlenir.", "cat": "tasarım" },
+  { "q": "1-N ilişkisi nasıl tabloya dönüştürülür?", "a": "1 tarafının anahtarı N tarafına yabancı anahtar olarak eklenir.", "cat": "ilişki" },
+  { "q": "N-N ilişkisi nasıl çözümlenir?", "a": "Ara tablo oluşturularak her iki varlığın anahtarları birleşik olarak tanımlanır.", "cat": "ilişki" },
+  { "q": "Mantıksal modelleme ne zaman yapılır?", "a": "Fiziksel veritabanı tasarımından hemen önce yapılır.", "cat": "süreç" },
+  { "q": "Bir varlık modeli çizilirken neler belirlenmelidir?", "a": "Varlıklar, nitelikler ve ilişkiler açıkça tanımlanmalıdır.", "cat": "tasarım" },
+  { "q": "Veri bağımsızlığı nedir?", "a": "Veri yapısının uygulamalardan bağımsız olmasıdır.", "cat": "kavram" },
+  { "q": "Bire bir ilişkide anahtar hangi tarafa taşınır?", "a": "Zorunlu tarafın anahtarı diğer tarafa taşınır.", "cat": "ilişki" },
+  { "q": "ERD'de kardinalite nedir?", "a": "İlişki içindeki varlıkların birbirine olan sayısal oranıdır (1-1, 1-N, N-N).", "cat": "modelleme" },
+  { "q": "SQL'de SELECT ne işe yarar?", "a": "Veritabanından veri sorgulamak için kullanılır.", "cat": "sql" },
+  { "q": "NULL değeri neyi ifade eder?", "a": "Verinin bilinmediğini veya girilmediğini gösterir.", "cat": "kavram" },
+  { "q": "Veritabanı tasarımında hangi hatalar yapılmamalıdır?", "a": "Veri tekrarı, anahtar eksikliği, uygun olmayan ilişkiler.", "cat": "uygulama" },
+  { "q": "Üstün varlık ile bağımlı varlık farkı nedir?", "a": "Bağımlı varlık, üstün varlığa olmadan var olamaz.", "cat": "kavram" },
+  { "q": "Veritabanında indeks ne işe yarar?", "a": "Verilere daha hızlı erişim sağlar.", "cat": "performans" },
+  { "q": "Veri bütünlüğü neyi ifade eder?", "a": "Verilerin doğruluğu ve tutarlılığıdır.", "cat": "kavram" },
+  { "q": "İlişkisel veritabanı nedir?", "a": "Verilerin tablolar halinde düzenlendiği veri modelidir.", "cat": "tanım" },
+  { "q": "ER diyagramında elmas şekli neyi temsil eder?", "a": "Varlıklar arasındaki ilişkileri gösterir.", "cat": "sembol" },
+  { "q": "Birincil anahtar tekrar edebilir mi?", "a": "Hayır, her satırda benzersiz olmalıdır.", "cat": "kural" },
+  { "q": "Bir varlık nedir?", "a": "Gerçek dünyadan tanımlanabilen nesne veya kavramdır.", "cat": "tanım" },
+  { "q": "SQL'de WHERE ifadesi ne işe yarar?", "a": "Koşul belirterek veri süzmek için kullanılır.", "cat": "sql" },
+  { "q": "Bir tabloya ait yabancı anahtar ne işe yarar?", "a": "Diğer tablolarla bağlantı kurar.", "cat": "ilişki" },
+  { "q": "JOIN komutu ne için kullanılır?", "a": "Birden fazla tabloyu birleştirerek veri sorgular.", "cat": "sql" },
+  { "q": "NULL ile boşluk ('' / 0) aynı şey midir?", "a": "Hayır, NULL veri yokluğunu gösterir.", "cat": "kavram" },
+  { "q": "Veritabanı normalizasyonu nedir?", "a": "Veri tekrarını önleyip tutarlılığı artırmak için yapılan düzenleme sürecidir.", "cat": "tasarım" },
+  { "q": "Bir varlık birden fazla kategoriye ait olabilir mi?", "a": "Evet, N-N ilişkisiyle gösterilir.", "cat": "ilişki" },
+  { "q": "Mantıksal model ile fiziksel model farkı nedir?", "a": "Mantıksal model veri ilişkilerini; fiziksel model veri tipi, indeks gibi detayları içerir.", "cat": "karşılaştırma" },
+  { "q": "Veritabanı yedeği neden alınır?", "a": "Veri kaybını önlemek için.", "cat": "güvenlik" },
+  { "q": "Bir ERD şemasında dikdörtgen neyi gösterir?", "a": "Varlıkları.", "cat": "sembol" },
+  { "q": "Karma (composite) nitelik nedir?", "a": "Birden fazla alt niteliğe ayrılabilen niteliğe denir (örnek: isim → ad, soyad).", "cat": "modelleme" },
+  { "q": "Zayıf varlığın birincil anahtarı nasıl oluşur?", "a": "Bağlı olduğu varlığın anahtarıyla birlikte tanımlanır.", "cat": "modelleme" },
+  { "q": "Fiziksel veri bağımsızlığı neden önemlidir?", "a": "Fiziksel yapıda değişiklik olduğunda uygulamaların etkilenmemesini sağlar.", "cat": "kavram" },
+  { "q": "Bir tablodaki veri tekrarı neyi olumsuz etkiler?", "a": "Veri tutarlılığı ve performansı.", "cat": "uygulama" },
+  { "q": "Çoğa çok (N-N) ilişkiler neden doğrudan tanımlanmaz?", "a": "Ara tablo ile çözülmesi gerekir.", "cat": "ilişki" },
+  { "q": "Yedekleme dışında veritabanı güvenliği için ne yapılabilir?", "a": "Yetkilendirme, şifreleme ve erişim kontrolü uygulanabilir.", "cat": "güvenlik" },
+  { "q": "Veritabanında performans nasıl artırılır?", "a": "İndeksleme, normalizasyon ve sorgu optimizasyonu ile.", "cat": "performans" },
+  { "q": "ER modellemede zorunlu ilişki nedir?", "a": "İki varlık arasındaki ilişkide bir tarafın diğerine mutlaka bağlı olmasıdır.", "cat": "modelleme" },
+  { "q": "Varlık ilişkisi kurulurken dikkat edilmesi gereken en önemli şey nedir?", "a": "Kardinalite (1-1, 1-N, N-N) ve zorunluluk düzeyi.", "cat": "ilişki" },
+  { "q": "Sipariş tablosunda fatura bilgisi nerede tutulur?", "a": "Siparişle ilişkili ayrı bir fatura tablosunda.", "cat": "uygulama" },
+  { "q": "Veritabanında tür ve açıklama gibi veriler hangi varlıkta kullanılır?", "a": "Kategori veya açıklayıcı yardımcı varlıklarda.", "cat": "modelleme" },
+  { "q": "Yedekleme alınmazsa ne olur?", "a": "Veri kaybı riski ortaya çıkar.", "cat": "güvenlik" },
+  { "q": "Kampanya - Üye ilişkisi nasıl gösterilir?", "a": "N-N (çoktan-çoğa) ve ara tablo ile.", "cat": "ilişki" },
+  { "q": "Veri tekrarı neden istenmez?", "a": "Tutarsızlık ve veri bütünlüğü hatalarına yol açar.", "cat": "tasarım" },
+  { "q": "Veritabanı performansını azaltan durum nedir?", "a": "Gereksiz veri tekrarı ve optimize edilmemiş sorgular.", "cat": "performans" },
+  { "q": "Bir veritabanı modeli neden normalleştirilir?", "a": "Veri tutarlılığı ve verimli depolama için.", "cat": "tasarım" },
+  { "q": "Ara tablo hangi ilişkide gereklidir?", "a": "N-N ilişkilerde.", "cat": "ilişki" },
+  { "q": "Bir sepet tablosu neden oluşturulur?", "a": "Kullanıcıların geçici alışverişlerini tutmak için.", "cat": "uygulama" },
+  { "q": "Bir veritabanında en üst düzey tasarım nedir?", "a": "Kavramsal model (ER diyagramı).", "cat": "modelleme" },
+  { "q": "Bir üyenin birden fazla kampanyaya dahil olması hangi ilişki tipidir?", "a": "N-N ilişkidir.", "cat": "ilişki" },
+  { "q": "Veritabanı neden üç katmanlı modellenir?", "a": "Kullanıcı görünümü, mantıksal yapı ve fiziksel yapı ayrımı için.", "cat": "mimari" },
+  { "q": "Bir varlık ilişkiye zorunluysa ne olur?", "a": "İlişkinin tanımlandığı diğer varlık olmadan var olamaz.", "cat": "modelleme" },
+  { "q": "E-ticaret sistemlerinde müşteri ve sipariş ilişkisi nasıldır?", "a": "Bir müşteri birçok sipariş verebilir (1-N).", "cat": "uygulama" },
+  { "q": "Fiziksel veri modeli nedir?", "a": "Verinin sistemde nasıl saklandığını tanımlar (veri tipi, indeks, vb.).", "cat": "mimari" },
+  { "q": "Bire bir ilişkide iki tarafta da zorunluluk varsa ne yapılır?", "a": "Her iki tarafın anahtarı diğerine yabancı anahtar olarak taşınabilir.", "cat": "ilişki" },
+  { "q": "Birden çok telefon numarası olan kullanıcı nasıl modellenir?", "a": "Kullanıcı-Telefon ilişkisi ayrı bir tablo ile çözülür.", "cat": "modelleme" },
+  { "q": "Veritabanında kısıt (constraint) nedir?", "a": "Veri girişini sınırlandıran kurallardır (ör: NOT NULL, UNIQUE).", "cat": "kural" },
+  { "q": "Veritabanı yönetim sisteminin (VTYS) görevi nedir?", "a": "Verilerin organize edilmesini, saklanmasını ve yönetilmesini sağlar.", "cat": "tanım" },
+  { "q": "Bir varlık kümesinin örneği nedir?", "a": "Öğrenciler, kitaplar, siparişler gibi benzer özellik taşıyan nesneler.", "cat": "kavram" },
+  { "q": "İndeksleme neden önemlidir?", "a": "Veriye daha hızlı ulaşımı sağlar ve sorgu performansını artırır.", "cat": "performans" },
+  { "q": "Görsel olarak ER diyagramında daire simgesi neyi ifade eder?", "a": "Nitelikleri.", "cat": "sembol" },
+  { "q": "Zayıf varlıklar neden destekleyici varlığa ihtiyaç duyar?", "a": "Kendi başlarına birincil anahtara sahip olamazlar.", "cat": "modelleme" },
+  { "q": "SQL'de 'GROUP BY' ne işe yarar?", "a": "Verileri gruplandırarak toplu işlemler yapılmasını sağlar.", "cat": "sql" },
+  { "q": "Bir kullanıcıya ait birden fazla adres varsa nasıl modellenir?", "a": "Kullanıcı - Adres arasında 1-N ilişkisi kurularak.", "cat": "ilişki" },
+  { "q": "Kavram modeli ile mantıksal model arasındaki fark nedir?", "a": "Kavram modeli iş ihtiyaçlarını, mantıksal model ise teknik yapıyı gösterir.", "cat": "karşılaştırma" },
+  { "q": "NOT NULL kısıtı neyi garanti eder?", "a": "Alanların boş bırakılmamasını sağlar.", "cat": "kural" },
+  { "q": "Veritabanında çoğaltma (replication) ne işe yarar?", "a": "Verilerin birden çok sistemde eş zamanlı olarak bulunmasını sağlar.", "cat": "güvenlik" },
+  { "q": "View (görünüm) nedir?", "a": "Sanal bir tablo gibi çalışan, sorgu sonuçlarını yansıtan yapı.", "cat": "sql" },
+  { "q": "Fiziksel modelleme neyi içerir?", "a": "Verilerin fiziksel depolama şekli, indeksler ve veri tipleri.", "cat": "mimari" },
+  { "q": "JOIN işlemi sırasında tablo adlarını neden belirtiriz?", "a": "Çakışan sütun adlarında karışıklığı önlemek için.", "cat": "sql" },
+  { "q": "Veri bağımsızlığı neden gereklidir?", "a": "Veri yapısı değişse bile uygulamanın çalışmaya devam etmesini sağlar.", "cat": "kavram" },
+  { "q": "Ara tabloya örnek ver?", "a": "KitapKategori, OgrenciDers gibi N-N ilişki çözüm tabloları.", "cat": "uygulama" },
+  { "q": "Veri türü neden belirlenir?", "a": "Verinin ne türde saklanacağını ve işleneceğini belirtmek için.", "cat": "kural" },
+  { "q": "SQL'de 'HAVING' ifadesi ne zaman kullanılır?", "a": "'GROUP BY' sonrası grupları filtrelemek için.", "cat": "sql" },
+  { "q": "Tekil (unique) anahtar ile birincil anahtar farkı nedir?", "a": "Unique boş değere izin verir, birincil anahtar vermez.", "cat": "karşılaştırma" },
+  { "q": "E-ticaret veritabanında stok takibi nasıl yapılır?", "a": "Kitap gibi varlıklarda 'stok_miktarı' alanı ile izlenir.", "cat": "uygulama" },
+  { "q": "Veritabanı güvenliğini artırmak için hangi işlemler yapılır?", "a": "Kullanıcı yetkilendirme, yedekleme ve veri şifreleme.", "cat": "güvenlik" },
+  { "q": "Bir sipariş sisteminde fatura bilgisi hangi tabloya yerleştirilmelidir?", "a": "Sipariş tablosuna veya ayrı bir fatura tablosuna.", "cat": "uygulama" },
+  { "q": "Müşteri ve kitap arasında sipariş ilişkisi nasıl modellenir?", "a": "Sipariş tablosu ile N-N ilişki çözülür.", "cat": "ilişki" },
+  { "q": "Veritabanı işlemlerinde bütünlük kısıtı ne sağlar?", "a": "Verilerin tutarlı ve geçerli kalmasını sağlar.", "cat": "kural" },
+  { "q": "VARCHAR ile TEXT arasındaki fark nedir?", "a": "VARCHAR sınırlı uzunlukta, TEXT ise büyük veri depolamada kullanılır.", "cat": "karşılaştırma" },
+  { "q": "Siparişlerin tarihsel sıralaması nasıl yapılır?", "a": "ORDER BY tarih ASC komutu ile.", "cat": "sql" },
+  { "q": "İlişkisel veritabanında varlık bağımlılığı ne demektir?", "a": "Bir varlığın başka bir varlık olmadan var olamaması durumudur.", "cat": "modelleme" },
+  { "q": "SQL'de 'INSERT INTO' komutu ne işe yarar?", "a": "Yeni bir kayıt eklemek için kullanılır.", "cat": "sql" },
+  { "q": "Bir müşterinin sadece bir sepeti olmasının sebebi nedir?", "a": "1-1 ilişkiyle birebir bağ kurulur.", "cat": "ilişki" },
+  { "q": "Ürün - kategori ilişkisi çoğunlukla hangi türdedir?", "a": "N-N (çoktan-çoğa)", "cat": "ilişki" },
+  { "q": "Veritabanında 'timestamp' veri tipi ne işe yarar?", "a": "Tarih ve zaman bilgisini birlikte saklar.", "cat": "veri_türü" },
+  { "q": "Bir müşteri siparişi verdiğinde hangi işlemler tetiklenebilir?", "a": "Stok düşürme, fatura oluşturma, kargo takibi.", "cat": "uygulama" },
+  { "q": "NULL değeri neden dikkatli kullanılmalıdır?", "a": "Sorgularda hatalı sonuçlara yol açabilir.", "cat": "kavram" },
+  { "q": "Bir tabloda aynı kullanıcının aynı telefon numarasını tekrar girmesi nasıl engellenir?", "a": "Birleşik birincil anahtar kullanılarak.", "cat": "tasarım" },
+  { "q": "SQL'de 'UPDATE' komutu ne işe yarar?", "a": "Kayıtları güncellemek için kullanılır.", "cat": "sql" },
+  { "q": "Veritabanında 'boolean' veri türü neyi ifade eder?", "a": "0 veya 1 şeklinde mantıksal değerleri tutar.", "cat": "veri_türü" },
+  { "q": "Fiziksel bağımsızlık neden veritabanı mimarisi için önemlidir?", "a": "Altyapı değişse bile veri yapısının bozulmamasını sağlar.", "cat": "mimari" },
+  { "q": "Bir varlığın birleşik anahtarı hangi durumlarda kullanılır?", "a": "Birden fazla alan birlikte benzersiz kimlik oluşturuyorsa.", "cat": "modelleme" },
+  { "q": "Veritabanı sistemlerinde transaction (işlem) ne anlama gelir?", "a": "Bir veya daha fazla SQL komutunun birlikte çalışmasıdır.", "cat": "kavram" },
+  { "q": "Veri tekrarı en çok hangi veri modelinde görülür?", "a": "Düz dosya (flat file) sistemlerinde.", "cat": "karşılaştırma" },
+  { "q": "Sipariş ile ürün arasında kurulan ara tablo genellikle ne içerir?", "a": "Ürün ID, sipariş ID ve miktar gibi bilgiler.", "cat": "uygulama" },
+  { "q": "Verilerin dağılımı normal değilse hangi test tercih edilir?", "a": "Parametrik olmayan testler tercih edilir.", "cat": "yorum" },
+  { "q": "Veri görselleştirmesi sonuç yorumunu nasıl etkiler?", "a": "Sonuçların anlaşılmasını kolaylaştırır.", "cat": "yorum" },
+  
+  {
+    "q": "Bir veritabanı sorgusunun çalışması yavaşsa hangi teknikler kullanılabilir?",
+    "a": "İndeksleme, sorgu optimizasyonu ve gereksiz JOIN'lerden kaçınmak.",
+    "cat": "performans"
+  },
+  {
+    "q": "Veritabanı sistemlerinde log dosyaları ne işe yarar?",
+    "a": "Veri işlemlerini izlemek ve geri alma işlemlerini mümkün kılmak.",
+    "cat": "güvenlik"
+  },
+  {
+    "q": "Veritabanı erişim katmanı (access layer) nedir?",
+    "a": "Veri ile uygulama arasındaki erişim arayüzüdür.",
+    "cat": "mimari"
+  },
+  {
+    "q": "Bir sütunun yalnızca pozitif sayı alması nasıl sağlanır?",
+    "a": "CHECK kısıtı ile değer aralığı sınırlandırılır.",
+    "cat": "kural"
+  },
+  {
+    "q": "ER diyagramında çoktan çoğa (N:N) ilişki nasıl gösterilir?",
+    "a": "İki varlık ve aralarında ilişkiyle birlikte ara tablo tanımlanarak.",
+    "cat": "sembol"
+  },
+  {
+    "q": "BOOLEAN veri türü ne ifade eder?",
+    "a": "True veya False (1 veya 0) değerlerini saklayan veri tipidir.",
+    "cat": "veri_türü"
+  },
+
+  { "q": "VTYS kısaltması neyi ifade eder?", "a": "Veritabanı Yönetim Sistemi.", "cat": "sistem" },
+  { "q": "Bir sistemde concurrency neyi ifade eder?", "a": "Aynı anda çok kullanıcının veriyle işlem yapabilmesi.", "cat": "sistem" },
+  { "q": "OLAP sistemleri hangi amaçla kullanılır?", "a": "Veri analizi ve karar destek için.", "cat": "sistem" },
+  { "q": "OLTP sistemleri neyi işler?", "a": "Gerçek zamanlı veri işlemlerini.", "cat": "sistem" },
+
+  { "q": "Mantıksal modelleme hangi aşamadan sonra yapılır?", "a": "Kavramsal modellemeden sonra.", "cat": "süreç" },
+  { "q": "Fiziksel modelleme ne zaman gerçekleştirilir?", "a": "Mantıksal modellemeden sonra.", "cat": "süreç" },
+  { "q": "Veri tabanı tasarımı hangi adımlarla ilerler?", "a": "Kavramsal → Mantıksal → Fiziksel", "cat": "süreç" },
+  { "q": "Modelleme süreci neden önemlidir?", "a": "Hatalı yapıları önleyerek sağlam veritabanı kurulmasını sağlar.", "cat": "süreç" },
+
+  { "q": "Veri indeksleme ne sağlar?", "a": "Veri arama işlemlerini hızlandırır.", "cat": "performans" },
+  { "q": "Sorgu optimizasyonu neden yapılır?", "a": "Sorguların daha hızlı çalışmasını sağlar.", "cat": "performans" },
+
+  { "q": "Yetki kontrolü neden önemlidir?", "a": "Yetkisiz kişilerin verilere ulaşmasını engeller.", "cat": "güvenlik" },
+  { "q": "Veritabanı şifreleme ne sağlar?", "a": "Verilerin güvenli saklanmasını.", "cat": "güvenlik" },
+
+  { "q": "Veritabanı katmanları nedir?", "a": "Dış, kavramsal ve iç katman.", "cat": "mimari" },
+
+  { "q": "CHECK kısıtı ne işe yarar?", "a": "Alanlara özel şartlar tanımlar.", "cat": "kural" },
+
+  { "q": "ER diyagramında çift daire neyi temsil eder?", "a": "Türetilmiş nitelikleri.", "cat": "sembol" },
+  { "q": "Altıgen şekil hangi öğeyi simgeler?", "a": "Zayıf varlık ilişkisini gösterir.", "cat": "sembol" },
+  { "q": "Altı çizili yazı ERD’de neyi gösterir?", "a": "Birincil anahtar.", "cat": "sembol" },
+  { "q": "ERD’de çok değerli nitelikler nasıl gösterilir?", "a": "Çift daire ile.", "cat": "sembol" },
+
+  { "q": "VARCHAR ile TEXT arasındaki fark nedir?", "a": "VARCHAR sınırlı, TEXT daha büyük veri tutar.", "cat": "veri_türü" },
+  { "q": "DATE ve DATETIME farkı nedir?", "a": "DATE yalnızca tarihi, DATETIME tarih ve saati içerir.", "cat": "veri_türü" },
+  { "q": "ENUM veri tipi ne için kullanılır?", "a": "Sınırlı ve önceden tanımlı değerler tutmak için.", "cat": "veri_türü" }
+    ];
+
+    let current = 0;
+    let activeSet = [...flashcards];
+
+    const card = document.getElementById("flashcard");
+    const q = document.getElementById("question");
+    const a = document.getElementById("answer");
+
+    function showCard(index) {
+      q.textContent = activeSet[index].q;
+      a.textContent = activeSet[index].a;
+      card.classList.remove("flipped");
+    }
+
+    function nextCard() {
+      current = (current + 1) % activeSet.length;
+      showCard(current);
+    }
+
+    function prevCard() {
+      current = (current - 1 + activeSet.length) % activeSet.length;
+      showCard(current);
+    }
+
+    function filterByCategory() {
+  const selected = document.getElementById("categorySelect").value;
+  activeSet = selected === "all"
+    ? flashcards
+    : flashcards.filter(card => card.cat === selected); // 🔥 burada 'card.cat'
+
+  current = 0;
+
+  if (activeSet.length > 0) {
+    showCard(current);
+  } else {
+    q.textContent = "Bu kategoride kart bulunamadı.";
+    a.textContent = "";
+    card.classList.remove("flipped");
+  }
+}
+
+    card.addEventListener("click", () => {
+      card.classList.toggle("flipped");
+    });
+
+    // İlk kartı göster
+    showCard(current);
+  </script>
+</body>
+</html>
